@@ -9,6 +9,7 @@ import {
 } from '@tanstack/react-query'
 
 import {useModerationOpts} from '#/state/preferences/moderation-opts'
+import {STALE} from '#/state/queries'
 import {useAppviewClient} from '#/state/session'
 import {type SearchFilters} from '#/screens/Search/searchParams'
 import {app} from '#/lexicons'
@@ -39,11 +40,18 @@ export function useSearchPostsV2Query({
   sort,
   enabled,
   filters,
+  refetchOnMount = true,
 }: {
   query: string
   sort?: 'top' | 'latest'
   enabled?: boolean
   filters?: SearchFilters
+  /**
+   * Whether mounting refreshes results that are already loaded. Pass `false`
+   * from components that read the results alongside the list showing them,
+   * so that mounting them doesn't reorder that list.
+   */
+  refetchOnMount?: boolean
 }) {
   const client = useAppviewClient()
   const moderationOpts = useModerationOpts()
@@ -69,6 +77,16 @@ export function useSearchPostsV2Query({
     string | undefined
   >({
     queryKey: searchPostsV2QueryKey({query, sort, filters}),
+    /*
+     * Results are refreshed when a screen showing them opens and on
+     * pull-to-refresh, but never in the background, e.g. when switching back
+     * to a tab or reconnecting. A background refetch puts newer posts above
+     * the ones being read. FlatList then discards the measurements of every
+     * row whose index changed, and a list scrolled past them jumps around by
+     * itself.
+     */
+    staleTime: STALE.INFINITY,
+    refetchOnMount: refetchOnMount ? 'always' : false,
     queryFn: async ({pageParam}) => {
       /*
        * Operators embedded in the query string (e.g. for back-compat links) are
