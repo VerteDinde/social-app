@@ -17,7 +17,9 @@ type DetectedLanguage = {code: string; name: string}
  * intended. Each name is a link that adds its code to the `language` filter and
  * re-runs the search. It runs the same v2 query as the active post-results tab;
  * react query dedupes on the shared cache key, so this reads the existing
- * result rather than triggering a second fetch.
+ * result rather than triggering a second fetch. It also doesn't refresh that
+ * result when it remounts (e.g. after the search input is dismissed), since
+ * that would reorder the results list below it.
  */
 export function DetectedLanguagesAdmonition({
   query,
@@ -41,6 +43,7 @@ export function DetectedLanguagesAdmonition({
     filters,
     sort,
     enabled,
+    refetchOnMount: false,
   })
 
   // Detected languages are a per-query value; read them from the first page.
